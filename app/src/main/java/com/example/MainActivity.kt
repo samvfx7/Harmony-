@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
 
             androidx.compose.runtime.LaunchedEffect(permissionGranted) {
                 if (permissionGranted) {
-                    appContainer.libraryScanner.scanLibrary()
+                    appContainer.libraryScanner.scanLibrary().collect {}
                 }
             }
 
