@@ -173,6 +173,17 @@ fun RequestLibraryPermissions(
 
     val permissionState = com.google.accompanist.permissions.rememberPermissionState(permission)
 
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val notifPermissionState = com.google.accompanist.permissions.rememberPermissionState(
+            android.Manifest.permission.POST_NOTIFICATIONS
+        )
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            if (!notifPermissionState.status.isGranted) {
+                notifPermissionState.launchPermissionRequest()
+            }
+        }
+    }
+
     androidx.compose.runtime.LaunchedEffect(permissionState.status) {
         when {
             permissionState.status.isGranted -> {

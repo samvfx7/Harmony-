@@ -1,20 +1,26 @@
 package com.example.domain.service
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import com.example.data.model.AudioEffectsState
 import com.example.data.model.EqualizerPreset
 import com.example.data.model.Song
 import com.example.data.repository.AudioEffectsRepository
 import com.example.data.repository.PlaybackHistoryRepository
 import com.example.data.repository.SongRepository
+import com.example.domain.audio.RealtimeAudioProcessor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -38,6 +44,8 @@ class PlayerController(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val equalizerService = EqualizerService()
+    val realtimeAudioProcessor = RealtimeAudioProcessor()
+    val audioFFTFlow: StateFlow<FloatArray> = realtimeAudioProcessor.fftData
 
     private var exoPlayer: ExoPlayer? = null
 
@@ -105,10 +113,26 @@ class PlayerController(
     private var progressJob: Job? = null
     private var sleepTimerJob: Job? = null
 
+    private val _globalSpeed = MutableStateFlow(1.0f)
+    private val _globalPitch = MutableStateFlow(0.0f)
+
     init {
         initializePlayer()
         loadPersistedEffects()
         startProgressUpdater()
+    }
+
+    private fun startPlayerService() {
+        try {
+            val intent = Intent(context, PlayerService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Could not start PlayerService")
+        }
     }
 
     private fun initializePlayer() {
@@ -118,7 +142,21 @@ class PlayerController(
                 .setUsage(C.USAGE_MEDIA)
                 .build()
 
-            exoPlayer = ExoPlayer.Builder(context)
+            val renderersFactory = object : DefaultRenderersFactory(context) {
+                override fun buildAudioSink(
+                    context: Context,
+                    enableFloatOutput: Boolean,
+                    enableAudioTrackPlaybackParams: Boolean
+                ): AudioSink {
+                    return DefaultAudioSink.Builder(context)
+                        .setAudioProcessors(arrayOf(realtimeAudioProcessor))
+                        .setEnableFloatOutput(enableFloatOutput)
+                        .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                        .build()
+                }
+            }
+
+            exoPlayer = ExoPlayer.Builder(context, renderersFactory)
                 .setAudioAttributes(audioAttributes, true)
                 .setHandleAudioBecomingNoisy(true)
                 .build().apply {
@@ -126,6 +164,7 @@ class PlayerController(
                         override fun onIsPlayingChanged(isPlaying: Boolean) {
                             _isPlaying.value = isPlaying
                             if (isPlaying) {
+                                startPlayerService()
                                 _currentTrack.value?.let { song ->
                                     scope.launch {
                                         songRepository.incrementPlayCount(song.id)
@@ -135,11 +174,15 @@ class PlayerController(
                             }
                         }
 
+                        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                            updateCurrentTrackFromPlayer(immediate = true)
+                        }
+
                         override fun onPlaybackStateChanged(playbackState: Int) {
                             if (playbackState == Player.STATE_READY) {
                                 _duration.value = duration.coerceAtLeast(0L)
                                 equalizerService.attachToAudioSession(audioSessionId)
-                                applyCurrentPlaybackParameters()
+                                applyCurrentPlaybackParameters(immediate = true)
                             } else if (playbackState == Player.STATE_ENDED) {
                                 skipNext()
                             }
@@ -150,10 +193,11 @@ class PlayerController(
                             newPosition: Player.PositionInfo,
                             reason: Int
                         ) {
-                            updateCurrentTrackFromPlayer()
+                            updateCurrentTrackFromPlayer(immediate = true)
                         }
                     })
                 }
+            startPlayerService()
         } catch (e: Exception) {
             Timber.e(e, "Error initializing ExoPlayer")
         }
@@ -164,6 +208,8 @@ class PlayerController(
     private fun loadPersistedEffects() {
         scope.launch {
             audioEffectsRepository.getAudioEffectsState().collect { effects ->
+                _globalSpeed.value = effects.playbackSpeed
+                _globalPitch.value = effects.pitch
                 _playbackSpeed.value = effects.playbackSpeed
                 _pitch.value = effects.pitch
                 _equalizerPreset.value = effects.equalizerPreset
@@ -175,7 +221,7 @@ class PlayerController(
                 _normalizeAudio.value = effects.normalizeAudio
                 _drcEnabled.value = effects.dynamicRangeCompression
 
-                applyCurrentPlaybackParameters()
+                applyCurrentPlaybackParameters(immediate = true)
                 equalizerService.applyPreset(effects.equalizerPreset)
                 equalizerService.setBassBoost(effects.bassBoost)
                 exoPlayer?.volume = effects.volume
@@ -376,29 +422,47 @@ class PlayerController(
     // Speed & Pitch
     fun setPlaybackSpeed(speed: Float) {
         val clamped = speed.coerceIn(0.25f, 2.5f)
+        _globalSpeed.value = clamped
         _playbackSpeed.value = clamped
-        applyCurrentPlaybackParameters()
+        applyCurrentPlaybackParameters(immediate = false)
         saveCurrentEffectsState()
     }
 
     fun setPitch(semitones: Float) {
         val clamped = semitones.coerceIn(-12.0f, 12.0f)
+        _globalPitch.value = clamped
         _pitch.value = clamped
-        applyCurrentPlaybackParameters()
+        applyCurrentPlaybackParameters(immediate = false)
         saveCurrentEffectsState()
     }
 
     fun resetSpeedAndPitch() {
+        _globalSpeed.value = 1.0f
+        _globalPitch.value = 0.0f
         _playbackSpeed.value = 1.0f
         _pitch.value = 0.0f
-        applyCurrentPlaybackParameters()
+        applyCurrentPlaybackParameters(immediate = true)
         saveCurrentEffectsState()
     }
 
     private var playbackParamsJob: kotlinx.coroutines.Job? = null
 
-    private fun applyCurrentPlaybackParameters() {
+    private fun applyCurrentPlaybackParameters(immediate: Boolean = false) {
         playbackParamsJob?.cancel()
+        if (immediate) {
+            try {
+                val speed = _playbackSpeed.value
+                val semitones = _pitch.value
+                val pitchMultiplier = 2.0.pow(semitones.toDouble() / 12.0).toFloat()
+                exoPlayer?.let { player ->
+                    player.playbackParameters = PlaybackParameters(speed, pitchMultiplier)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error applying immediate PlaybackParameters")
+            }
+            return
+        }
+
         playbackParamsJob = scope.launch {
             kotlinx.coroutines.delay(120) // 120ms debounce to prevent AudioTrack/sink choking during continuous dragging
             try {
@@ -515,7 +579,7 @@ class PlayerController(
         }
     }
 
-    private fun updateCurrentTrackFromPlayer() {
+    private fun updateCurrentTrackFromPlayer(immediate: Boolean = true) {
         val player = exoPlayer ?: return
         val currentMediaItemIndex = player.currentMediaItemIndex
         val q = _queue.value
@@ -524,17 +588,26 @@ class PlayerController(
             _currentTrack.value = song
             _isFavorite.value = song.isFavorite
 
-            // Load and apply custom per-song speed and pitch if saved
+            // Immediately set target pitch & speed from memory or global baseline
+            val memorySpeed = song.customSpeed ?: _globalSpeed.value
+            val memoryPitch = song.customPitch ?: _globalPitch.value
+
+            _playbackSpeed.value = memorySpeed
+            _pitch.value = memoryPitch
+            applyCurrentPlaybackParameters(immediate = immediate)
+
+            // Async update in case DB has fresher custom parameters
             scope.launch {
                 val dbSong = songRepository.getSongById(song.id)
                 if (dbSong != null) {
-                    val targetSpeed = dbSong.customSpeed ?: 1.0f
-                    val targetPitch = dbSong.customPitch ?: 0.0f
+                    val dbSpeed = dbSong.customSpeed ?: _globalSpeed.value
+                    val dbPitch = dbSong.customPitch ?: _globalPitch.value
                     
-                    // Directly update the player speed & pitch flows
-                    _playbackSpeed.value = targetSpeed
-                    _pitch.value = targetPitch
-                    applyCurrentPlaybackParameters()
+                    if (_playbackSpeed.value != dbSpeed || _pitch.value != dbPitch) {
+                        _playbackSpeed.value = dbSpeed
+                        _pitch.value = dbPitch
+                        applyCurrentPlaybackParameters(immediate = true)
+                    }
                 }
             }
         }

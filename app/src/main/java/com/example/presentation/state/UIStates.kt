@@ -19,7 +19,8 @@ data class PlayerUIState(
     val queue: List<Song> = emptyList(),
     val currentTimeDisplay: String = "00:00",
     val durationDisplay: String = "00:00",
-    val sleepTimeRemainingMs: Long? = null
+    val sleepTimeRemainingMs: Long? = null,
+    val audioFFT: FloatArray = FloatArray(28) { 0.05f }
 )
 
 data class LibraryUIState(

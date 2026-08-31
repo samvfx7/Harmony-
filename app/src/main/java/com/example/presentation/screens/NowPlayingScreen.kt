@@ -79,6 +79,7 @@ import com.example.ui.components.ImmersiveControlBar
 import com.example.ui.components.LiquidBackgroundAura
 import com.example.ui.components.LiquidGlassSpecularBorder
 import com.example.ui.components.MainPlaybackControls
+import com.example.ui.components.RealtimeAudioVisualizer
 import com.example.ui.components.SmoothProgressBar
 import com.example.ui.theme.BackgroundDark
 import com.example.ui.theme.CyanPrimary
@@ -301,7 +302,17 @@ fun NowPlayingScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Real-time Media3 AudioProcessor Frequency Visualizer
+                RealtimeAudioVisualizer(
+                    fftData = playerUIState.audioFFT,
+                    isPlaying = playerUIState.isPlaying,
+                    height = 54.dp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Title, Favorite, and Serif Italic Artist
                 Column(

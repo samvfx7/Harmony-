@@ -29,7 +29,8 @@ class PlayerViewModel(
         playerController.playlistFlow,
         playerController.currentTimeDisplay,
         playerController.durationDisplay,
-        playerController.sleepTimerFlow
+        playerController.sleepTimerFlow,
+        playerController.audioFFTFlow
     ) { params: Array<Any?> ->
         @Suppress("UNCHECKED_CAST")
         PlayerUIState(
@@ -43,7 +44,8 @@ class PlayerViewModel(
             queue = params[7] as? List<Song> ?: emptyList(),
             currentTimeDisplay = params[8] as? String ?: "00:00",
             durationDisplay = params[9] as? String ?: "00:00",
-            sleepTimeRemainingMs = params[10] as? Long
+            sleepTimeRemainingMs = params[10] as? Long,
+            audioFFT = params[11] as? FloatArray ?: FloatArray(28) { 0.05f }
         )
     }.stateIn(
         scope = viewModelScope,
