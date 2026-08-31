@@ -395,15 +395,26 @@ class PlayerController(
         saveCurrentEffectsState()
     }
 
+    private var playbackParamsJob: kotlinx.coroutines.Job? = null
+
     private fun applyCurrentPlaybackParameters() {
-        try {
-            val speed = _playbackSpeed.value
-            val semitones = _pitch.value
-            // Formula: pitchMultiplier = 2 ^ (semitones / 12.0)
-            val pitchMultiplier = 2.0.pow(semitones.toDouble() / 12.0).toFloat()
-            exoPlayer?.playbackParameters = PlaybackParameters(speed, pitchMultiplier)
-        } catch (e: Exception) {
-            Timber.e(e, "Error setting PlaybackParameters")
+        playbackParamsJob?.cancel()
+        playbackParamsJob = scope.launch {
+            kotlinx.coroutines.delay(120) // 120ms debounce to prevent AudioTrack/sink choking during continuous dragging
+            try {
+                val speed = _playbackSpeed.value
+                val semitones = _pitch.value
+                // Formula: pitchMultiplier = 2 ^ (semitones / 12.0)
+                val pitchMultiplier = 2.0.pow(semitones.toDouble() / 12.0).toFloat()
+                exoPlayer?.let { player ->
+                    val currentParams = player.playbackParameters
+                    if (currentParams.speed != speed || currentParams.pitch != pitchMultiplier) {
+                        player.playbackParameters = PlaybackParameters(speed, pitchMultiplier)
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error setting PlaybackParameters")
+            }
         }
     }
 
