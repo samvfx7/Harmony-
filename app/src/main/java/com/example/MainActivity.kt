@@ -12,6 +12,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.example.presentation.navigation.HarmonyNavHost
@@ -19,6 +21,8 @@ import com.example.ui.theme.BackgroundDark
 import com.example.ui.theme.HarmonyTheme
 
 class MainActivity : ComponentActivity() {
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    @com.google.accompanist.permissions.ExperimentalPermissionsApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -26,23 +30,17 @@ class MainActivity : ComponentActivity() {
         val appContainer = (application as HarmonyApp).appContainer
 
         setContent {
-            val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                Manifest.permission.READ_MEDIA_AUDIO
-            } else {
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            }
+            var permissionGranted by androidx.compose.runtime.mutableStateOf(false)
 
-            val launcher = rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestPermission()
-            ) { isGranted ->
-                if (isGranted) {
-                    appContainer.libraryScanner.scanLibrary()
+            com.example.domain.usecase.RequestLibraryPermissions(
+                onPermissionGranted = {
+                    permissionGranted = true
                 }
-            }
+            )
 
-            LaunchedEffect(Unit) {
-                if (ContextCompat.checkSelfPermission(this@MainActivity, permission) != PackageManager.PERMISSION_GRANTED) {
-                    launcher.launch(permission)
+            androidx.compose.runtime.LaunchedEffect(permissionGranted) {
+                if (permissionGranted) {
+                    appContainer.libraryScanner.scanLibrary()
                 }
             }
 

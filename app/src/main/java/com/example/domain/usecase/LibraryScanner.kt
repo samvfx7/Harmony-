@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import timber.log.Timber
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.shouldShowRationale
 
 data class ScanProgress(
     val scannedCount: Int,
@@ -292,4 +294,33 @@ class LibraryScanner(
     }
 
     private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+}
+
+@androidx.compose.runtime.Composable
+@com.google.accompanist.permissions.ExperimentalPermissionsApi
+fun RequestLibraryPermissions(
+    onPermissionGranted: () -> Unit,
+    onPermissionDenied: () -> Unit = {}
+) {
+    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        android.Manifest.permission.READ_MEDIA_AUDIO
+    } else {
+        android.Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+
+    val permissionState = com.google.accompanist.permissions.rememberPermissionState(permission)
+
+    androidx.compose.runtime.LaunchedEffect(permissionState.status) {
+        when {
+            permissionState.status.isGranted -> {
+                onPermissionGranted()
+            }
+            permissionState.status.shouldShowRationale -> {
+                onPermissionDenied()
+            }
+            else -> {
+                permissionState.launchPermissionRequest()
+            }
+        }
+    }
 }

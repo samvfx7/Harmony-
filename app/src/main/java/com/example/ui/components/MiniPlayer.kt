@@ -193,7 +193,7 @@ fun MiniPlayer(
                     Icon(
                         imageVector = if (uiState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (uiState.isPlaying) "Pause" else "Play",
-                        tint = Color.White,
+                        tint = Color.Black,
                         modifier = Modifier.size(24.dp)
                     )
                 }

@@ -137,7 +137,7 @@ fun LiquidBackgroundAura(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF0F0F13))
+            .background(Color(0xFF000000))
     ) {
         // Fluid ambient light dynamic orbs
         Box(
@@ -146,7 +146,7 @@ fun LiquidBackgroundAura(
                 .offset(x = (-40).dp, y = (-20).dp)
                 .size((280 * if (isAnimated) orb1Scale else 1f).dp)
                 .blur(80.dp)
-                .background(CyanPrimary.copy(alpha = 0.22f), CircleShape)
+                .background(Color(0xFFFFFFFF).copy(alpha = 0.15f), CircleShape)
         )
 
         Box(
@@ -155,7 +155,7 @@ fun LiquidBackgroundAura(
                 .offset(x = 60.dp, y = (-50).dp)
                 .size((320 * if (isAnimated) orb2Scale else 1f).dp)
                 .blur(90.dp)
-                .background(PurpleAccent.copy(alpha = 0.20f), CircleShape)
+                .background(Color(0xFFFFFFFF).copy(alpha = 0.10f), CircleShape)
         )
 
         Box(
@@ -164,7 +164,7 @@ fun LiquidBackgroundAura(
                 .offset(y = 80.dp)
                 .size(340.dp)
                 .blur(100.dp)
-                .background(PinkAccent.copy(alpha = 0.15f), CircleShape)
+                .background(Color(0xFFFFFFFF).copy(alpha = 0.05f), CircleShape)
         )
 
         // Main content layer placed on top of liquid light background

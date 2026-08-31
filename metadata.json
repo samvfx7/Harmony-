@@ -2,5 +2,7 @@
   "name": "Harmony",
   "description": "Feature-complete open-source Android music player with dark mode, 5-band equalizer, speed/pitch control, and smooth animations.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
