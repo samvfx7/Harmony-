@@ -32,7 +32,9 @@ data class SongEntity(
     val albumId: Long = 0L,
     val artistId: Long = 0L,
     val playCount: Int = 0,
-    val lastPlayedDate: Long? = null
+    val lastPlayedDate: Long? = null,
+    val customPitch: Float? = null,
+    val customSpeed: Float? = null
 ) {
     fun toDomainModel(): Song = Song(
         id = id,
@@ -50,7 +52,9 @@ data class SongEntity(
         isLossless = isLossless,
         fileSize = fileSize,
         albumId = albumId,
-        artistId = artistId
+        artistId = artistId,
+        customPitch = customPitch,
+        customSpeed = customSpeed
     )
 
     companion object {
@@ -72,7 +76,9 @@ data class SongEntity(
             albumId = song.albumId,
             artistId = song.artistId,
             playCount = playCount,
-            lastPlayedDate = lastPlayedDate
+            lastPlayedDate = lastPlayedDate,
+            customPitch = song.customPitch,
+            customSpeed = song.customSpeed
         )
     }
 }

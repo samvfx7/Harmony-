@@ -375,7 +375,7 @@ class PlayerController(
 
     // Speed & Pitch
     fun setPlaybackSpeed(speed: Float) {
-        val clamped = speed.coerceIn(0.25f, 2.0f)
+        val clamped = speed.coerceIn(0.25f, 2.5f)
         _playbackSpeed.value = clamped
         applyCurrentPlaybackParameters()
         saveCurrentEffectsState()
@@ -489,6 +489,21 @@ class PlayerController(
         _sleepTimerRemainingMs.value = null
     }
 
+    fun updateSongInQueue(songId: Long, pitch: Float?, speed: Float?) {
+        _queue.value = _queue.value.map { song ->
+            if (song.id == songId) {
+                song.copy(customPitch = pitch, customSpeed = speed)
+            } else {
+                song
+            }
+        }
+        _currentTrack.value?.let { current ->
+            if (current.id == songId) {
+                _currentTrack.value = current.copy(customPitch = pitch, customSpeed = speed)
+            }
+        }
+    }
+
     private fun updateCurrentTrackFromPlayer() {
         val player = exoPlayer ?: return
         val currentMediaItemIndex = player.currentMediaItemIndex
@@ -497,6 +512,20 @@ class PlayerController(
             val song = q[currentMediaItemIndex]
             _currentTrack.value = song
             _isFavorite.value = song.isFavorite
+
+            // Load and apply custom per-song speed and pitch if saved
+            scope.launch {
+                val dbSong = songRepository.getSongById(song.id)
+                if (dbSong != null) {
+                    val targetSpeed = dbSong.customSpeed ?: 1.0f
+                    val targetPitch = dbSong.customPitch ?: 0.0f
+                    
+                    // Directly update the player speed & pitch flows
+                    _playbackSpeed.value = targetSpeed
+                    _pitch.value = targetPitch
+                    applyCurrentPlaybackParameters()
+                }
+            }
         }
     }
 

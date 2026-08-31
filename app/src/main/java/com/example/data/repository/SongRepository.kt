@@ -24,6 +24,7 @@ interface SongRepository {
     suspend fun toggleFavorite(songId: Long, isFavorite: Boolean)
     suspend fun incrementPlayCount(songId: Long)
     suspend fun getSongCount(): Int
+    suspend fun updateCustomAudioEffects(songId: Long, pitch: Float?, speed: Float?)
 
     fun getAllAlbums(): Flow<List<Album>>
     fun getAllArtists(): Flow<List<Artist>>
@@ -75,6 +76,13 @@ class SongRepositoryImpl(
 
     override suspend fun incrementPlayCount(songId: Long) {
         songDao.incrementPlayCount(songId)
+    }
+
+    override suspend fun updateCustomAudioEffects(songId: Long, pitch: Float?, speed: Float?) {
+        val existing = songDao.getSongById(songId)
+        if (existing != null) {
+            songDao.updateSong(existing.copy(customPitch = pitch, customSpeed = speed))
+        }
     }
 
     override suspend fun getSongCount(): Int {

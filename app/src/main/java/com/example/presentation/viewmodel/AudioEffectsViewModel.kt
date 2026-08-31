@@ -15,8 +15,11 @@ import kotlinx.coroutines.launch
 
 class AudioEffectsViewModel(
     private val playerController: PlayerController,
-    private val audioEffectsRepository: AudioEffectsRepository
+    private val audioEffectsRepository: AudioEffectsRepository,
+    private val songRepository: com.example.data.repository.SongRepository
 ) : ViewModel() {
+
+    val currentTrack = playerController.currentTrackFlow
 
     val uiState: StateFlow<AudioEffectsUIState> = combine(
         playerController.playbackSpeedFlow,
@@ -81,5 +84,12 @@ class AudioEffectsViewModel(
         playerController.setVolume(1.0f)
         playerController.setNormalizeAudio(false)
         playerController.setDynamicRangeCompression(false)
+    }
+
+    fun saveSongCustomEffects(songId: Long, pitch: Float?, speed: Float?) {
+        viewModelScope.launch {
+            songRepository.updateCustomAudioEffects(songId, pitch, speed)
+            playerController.updateSongInQueue(songId, pitch, speed)
+        }
     }
 }

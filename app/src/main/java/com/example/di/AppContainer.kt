@@ -82,7 +82,7 @@ class AppContainer(private val context: Context) {
                         LibraryViewModel(songRepository, playlistRepository, libraryScanner, playerController) as T
                     }
                     modelClass.isAssignableFrom(AudioEffectsViewModel::class.java) -> {
-                        AudioEffectsViewModel(playerController, audioEffectsRepository) as T
+                        AudioEffectsViewModel(playerController, audioEffectsRepository, songRepository) as T
                     }
                     modelClass.isAssignableFrom(TrackInfoViewModel::class.java) -> {
                         TrackInfoViewModel(playerController) as T

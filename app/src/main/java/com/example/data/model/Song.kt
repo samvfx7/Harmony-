@@ -16,7 +16,9 @@ data class Song(
     val isLossless: Boolean = false,
     val fileSize: Long = 0L,
     val albumId: Long = 0L,
-    val artistId: Long = 0L
+    val artistId: Long = 0L,
+    val customPitch: Float? = null,
+    val customSpeed: Float? = null
 ) {
     val formattedDuration: String
         get() = formatDuration(duration)

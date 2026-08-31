@@ -30,7 +30,7 @@ import com.example.data.db.entity.UserAudioEffectsPreferenceEntity
         SavedEqualizerPresetEntity::class,
         PlaybackHistoryEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

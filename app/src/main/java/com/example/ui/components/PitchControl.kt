@@ -39,9 +39,17 @@ fun PitchControl(
     val view = LocalView.current
     val intervalPresets = listOf(
         -12f to "-1 Octave",
+        -7f to "-5th (Perfect)",
         -5f to "-5 Semitones",
+        -3f to "-3 Semitones",
+        -2f to "-2 Semitones",
+        -1f to "-1 Semitone",
         0f to "Natural (0)",
+        1f to "+1 Semitone",
+        2f to "+2 Semitones",
+        3f to "+3 Semitones",
         5f to "+5 Semitones",
+        7f to "+5th (Perfect)",
         12f to "+1 Octave"
     )
 
@@ -61,11 +69,10 @@ fun PitchControl(
                 color = TextPrimary
             )
 
-            val pitchInt = currentPitch.toInt()
             val displayText = when {
-                pitchInt > 0 -> "+$pitchInt semitones"
-                pitchInt < 0 -> "$pitchInt semitones"
-                else -> "Natural (0)"
+                Math.abs(currentPitch) < 0.01f -> "Natural (0)"
+                currentPitch > 0f -> String.format(Locale.US, "+%.2f semitones", currentPitch)
+                else -> String.format(Locale.US, "%.2f semitones", currentPitch)
             }
 
             Text(
@@ -84,7 +91,6 @@ fun PitchControl(
                 onPitchChanged(newPitch)
             },
             valueRange = -12f..12f,
-            steps = 23, // integer steps between -12 and +12
             onValueChangeFinished = {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             },
@@ -98,7 +104,103 @@ fun PitchControl(
                 .testTag("pitch_slider")
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Fine Adjustment Micro-Controls Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onPitchChanged((currentPitch - 1.0f).coerceIn(-12f, 12f))
+                    },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    modifier = Modifier.height(32.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF)),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                ) {
+                    Text("-1.0", style = MaterialTheme.typography.labelSmall)
+                }
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onPitchChanged((currentPitch - 0.1f).coerceIn(-12f, 12f))
+                    },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    modifier = Modifier.height(32.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF)),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                ) {
+                    Text("-0.1", style = MaterialTheme.typography.labelSmall)
+                }
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onPitchChanged((currentPitch - 0.01f).coerceIn(-12f, 12f))
+                    },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    modifier = Modifier.height(32.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF)),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                ) {
+                    Text("-0.01", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onPitchChanged(0f)
+                }
+            ) {
+                Text("Reset", style = MaterialTheme.typography.labelSmall, color = CyanPrimary, fontWeight = FontWeight.Bold)
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onPitchChanged((currentPitch + 0.01f).coerceIn(-12f, 12f))
+                    },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    modifier = Modifier.height(32.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF)),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                ) {
+                    Text("+0.01", style = MaterialTheme.typography.labelSmall)
+                }
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onPitchChanged((currentPitch + 0.1f).coerceIn(-12f, 12f))
+                    },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    modifier = Modifier.height(32.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF)),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                ) {
+                    Text("+0.1", style = MaterialTheme.typography.labelSmall)
+                }
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        onPitchChanged((currentPitch + 1.0f).coerceIn(-12f, 12f))
+                    },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    modifier = Modifier.height(32.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF)),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                ) {
+                    Text("+1.0", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Interval Chips
         Row(
